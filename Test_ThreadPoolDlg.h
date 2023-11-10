@@ -4,7 +4,7 @@
 
 #pragma once
 
-#include "ThreadPool.h"
+#include "../../Common/thread/ThreadPool/ThreadPool.h"
 #include "../../Common/CListCtrl/CVtListCtrlEx/VtListCtrlEx.h"
 
 // CTestThreadPoolDlg 대화 상자

@@ -108,11 +108,16 @@ BOOL CTestThreadPoolDlg::OnInitDialog()
 	init_list();
 
 	CString fullpath = _T("c:\\abc/def\\123.txt");
-	CString folder = get_part(fullpath, 2);
+	CString folder = get_part(fullpath, fn_folder);
 
 	fullpath = _T("/abc/def/12345");
-	folder = get_part(fullpath, 3);
+	folder = get_part(fullpath, fn_folder);
 
+	CString str;
+	char* cstr = "동해물과 백두산이";
+	str = char2CString(cstr);
+	str = CString(cstr);
+	TRACE(_T("%s\n"), CString(cstr));
 
 	return TRUE;  // 포커스를 컨트롤에 설정하지 않으면 TRUE를 반환합니다.
 }
@@ -170,7 +175,7 @@ int CTestThreadPoolDlg::test_func1(int id, int start, int end)
 {
 	TRACE(_T("id = %d, start...\n"), id);
 
-	for (int i = start; i < end; i++)
+	for (int i = start; i <= end; i++)
 	{
 		m_list.set_text(id, 1, i2S(i-start));
 		TRACE(_T("id=%d, i = %d\n"), id, i);
@@ -186,7 +191,7 @@ int CTestThreadPoolDlg::test_func2(int id, int start)
 {
 	TRACE(_T("id = %d, start...\n"), id);
 
-	for (int i = start + 100 - 1; i >= start; i--)
+	for (int i = start + 50; i >= start; i--)
 	{
 		m_list.set_text(id, 1, i2S(i - start));
 		TRACE(_T("id=%d, i = %d\n"), id, i);
@@ -202,7 +207,7 @@ int CTestThreadPoolDlg::test_func2(int id, int start)
 void CTestThreadPoolDlg::OnBnClickedOk()
 {
 	SetWindowText(_T("total thread = ") + i2S(m_request_id + 1));
-
+	/*
 	//CString file_path = _T("agent/linkmemine_windows_agent_setup.exe");	//37 MB
 	CString file_path = _T("lmmviewer/lmmviewer_old(solution).zip");	//210 MB
 	//CRequestUrlParams* params = (CRequestUrlParams*)new CRequestUrlParams(m_server_ip, m_server_port, _T(""), _T("GET"));
@@ -217,6 +222,7 @@ void CTestThreadPoolDlg::OnBnClickedOk()
 	m_request_id++;
 
 	return;
+	*/
 
 	//int id = m_thread_id;
 	//SetWindowText(_T("total thread = ") + i2S(id));
@@ -236,7 +242,7 @@ void CTestThreadPoolDlg::OnBnClickedOk()
 
 	//만약 시간이 걸리는 작업일 경우는 id를 vector에 저장해놓고 동일한 크기의 vector에 thread종료 flag를 넣어
 	//해당 flag가 true이면 바로 thread함수에서 리턴하도록 해야 한다.
-	for (int id = 0; id < 10; id++)
+	for (int id = 0; id < 100; id++)
 	{
 		m_list.insert_item(id, i2S(id), false, false);
 
@@ -246,9 +252,9 @@ void CTestThreadPoolDlg::OnBnClickedOk()
 
 		//서로 다른 함수 타입도 모두 job으로 등록하여 thread로 실행할 수 있다.
 		if (id % 2)
-			m_pool.EnqueueJob([id, this]() { test_func1(id, id * 100, id * 100 + 100); });
+			m_pool.EnqueueJob([id, this]() { test_func1(id, id * 50, id * 50 + 50); });
 		else
-			m_pool.EnqueueJob([id, this]() { test_func2(id, id * 100); });
+			m_pool.EnqueueJob([id, this]() { test_func2(id, id * 50); });
 		////Wait(10);	//wait를 안주면 에러발생. ThreadPool 클래스의 EnqueueJob()에서  Sleep(10);을 주니 정상 동작함.
 	}
 
@@ -290,7 +296,7 @@ void CTestThreadPoolDlg::init_list()
 	m_list.show_progress_text();
 	m_list.progress_text_color(GRAY(64));
 	m_list.set_use_own_imagelist(false);
-	m_list.set_header_height(20);
+	m_list.set_header_height(24);
 	m_list.set_line_height(20);
 	//m_list.set_color_theme(CVtListCtrlEx::color_theme_navy_blue);
 }
