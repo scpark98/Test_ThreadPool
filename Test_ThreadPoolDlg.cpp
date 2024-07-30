@@ -116,36 +116,6 @@ BOOL CTestThreadPoolDlg::OnInitDialog()
 
 	m_pool.resize(100);
 
-	CString fullpath = _T("c:\\abc/def\\123.txt");
-	CString folder = get_part(fullpath, fn_folder);
-
-	fullpath = _T("/abc/def/12345");
-	folder = get_part(fullpath, fn_folder);
-
-	CString str;
-	//char* cstr = "동해물과 백두산이";
-	char cstr[1000];
-	ZeroMemory(cstr, sizeof(char) * 1000);
-	strcpy(cstr, "동해물과 백두산이");
-	str = char2CString(cstr);
-	str = cstr;
-	str = CString(cstr);
-	TRACE(_T("%s\n"), CString(cstr));
-
-	int num;
-	std::deque<int> dq;
-	for (int i = 0; i < 10; i++)
-	{
-		num = random19937(0, 100);
-		dq.push_back(num);
-		TRACE(_T("num %d = %d\n"), i, num);
-	}
-
-	for (auto& num : dq)
-	{
-		TRACE(_T("num = %d\n"), num);
-	}
-
 	RestoreWindowPosition(&theApp, this);
 
 	return TRUE;  // 포커스를 컨트롤에 설정하지 않으면 TRUE를 반환합니다.
