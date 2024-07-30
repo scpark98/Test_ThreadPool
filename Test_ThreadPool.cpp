@@ -31,6 +31,7 @@ CTestThreadPoolApp::CTestThreadPoolApp()
 // 유일한 CTestThreadPoolApp 개체입니다.
 
 CTestThreadPoolApp theApp;
+SCLog gLog;
 
 
 // CTestThreadPoolApp 초기화

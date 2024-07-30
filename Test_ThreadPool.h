@@ -10,6 +10,7 @@
 
 #include "resource.h"		// 주 기호입니다.
 
+#include "../../Common/log/SCLog/SCLog.h"
 
 // CTestThreadPoolApp:
 // 이 클래스의 구현에 대해서는 Test_ThreadPool.cpp을(를) 참조하세요.
@@ -30,3 +31,4 @@ public:
 };
 
 extern CTestThreadPoolApp theApp;
+extern SCLog gLog;

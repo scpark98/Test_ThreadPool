@@ -6,6 +6,7 @@
 
 #include "../../Common/thread/ThreadPool/ThreadPool.h"
 #include "../../Common/CListCtrl/CVtListCtrlEx/VtListCtrlEx.h"
+#include "../../Common/ResizeCtrl.h"
 
 // CTestThreadPoolDlg 대화 상자
 class CTestThreadPoolDlg : public CDialogEx
@@ -19,6 +20,11 @@ public:
 	int test_func1(int id, int start, int end);
 	int test_func2(int id, int start);
 
+	std::condition_variable m_cond;
+	std::mutex m_mutex;
+	std::vector<int> m_int_queue;
+	void test_func3();
+
 	CString			m_server_ip = _T("sl.linkmemine.com");
 	int				m_server_port = 443;
 	CString			m_login_id = _T("user9");
@@ -30,6 +36,7 @@ public:
 #endif
 
 protected:
+	CResizeCtrl	m_resize;
 	void		init_list();
 
 	protected:
@@ -50,4 +57,6 @@ public:
 	afx_msg void OnBnClickedOk();
 	afx_msg void OnBnClickedCancel();
 	CVtListCtrlEx m_list;
+	afx_msg void OnWindowPosChanged(WINDOWPOS* lpwndpos);
+	afx_msg void OnBnClickedButtonAddQueue();
 };

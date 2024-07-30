@@ -70,6 +70,8 @@ BEGIN_MESSAGE_MAP(CTestThreadPoolDlg, CDialogEx)
 	ON_WM_QUERYDRAGICON()
 	ON_BN_CLICKED(IDOK, &CTestThreadPoolDlg::OnBnClickedOk)
 	ON_BN_CLICKED(IDCANCEL, &CTestThreadPoolDlg::OnBnClickedCancel)
+	ON_WM_WINDOWPOSCHANGED()
+	ON_BN_CLICKED(IDC_BUTTON_ADD_QUEUE, &CTestThreadPoolDlg::OnBnClickedButtonAddQueue)
 END_MESSAGE_MAP()
 
 
@@ -105,7 +107,14 @@ BOOL CTestThreadPoolDlg::OnInitDialog()
 	SetIcon(m_hIcon, FALSE);		// 작은 아이콘을 설정합니다.
 
 	// TODO: 여기에 추가 초기화 작업을 추가합니다.
+	m_resize.Create(this);
+	m_resize.Add(IDC_LIST, 0, 0, 100, 100);
+	m_resize.Add(IDOK, 100, 100, 0, 0);
+	m_resize.Add(IDCANCEL, 100, 100, 0, 0);
+
 	init_list();
+
+	m_pool.resize(100);
 
 	CString fullpath = _T("c:\\abc/def\\123.txt");
 	CString folder = get_part(fullpath, fn_folder);
@@ -114,10 +123,30 @@ BOOL CTestThreadPoolDlg::OnInitDialog()
 	folder = get_part(fullpath, fn_folder);
 
 	CString str;
-	char* cstr = "동해물과 백두산이";
+	//char* cstr = "동해물과 백두산이";
+	char cstr[1000];
+	ZeroMemory(cstr, sizeof(char) * 1000);
+	strcpy(cstr, "동해물과 백두산이");
 	str = char2CString(cstr);
+	str = cstr;
 	str = CString(cstr);
 	TRACE(_T("%s\n"), CString(cstr));
+
+	int num;
+	std::deque<int> dq;
+	for (int i = 0; i < 10; i++)
+	{
+		num = random19937(0, 100);
+		dq.push_back(num);
+		TRACE(_T("num %d = %d\n"), i, num);
+	}
+
+	for (auto& num : dq)
+	{
+		TRACE(_T("num = %d\n"), num);
+	}
+
+	RestoreWindowPosition(&theApp, this);
 
 	return TRUE;  // 포커스를 컨트롤에 설정하지 않으면 TRUE를 반환합니다.
 }
@@ -178,7 +207,7 @@ int CTestThreadPoolDlg::test_func1(int id, int start, int end)
 	for (int i = start; i <= end; i++)
 	{
 		m_list.set_text(id, 1, i2S(i-start));
-		TRACE(_T("id=%d, i = %d\n"), id, i);
+		logWrite(_T("id=%02d, i = %d"), id, i);
 		std::this_thread::sleep_for(std::chrono::milliseconds(10));
 	}
 
@@ -191,10 +220,10 @@ int CTestThreadPoolDlg::test_func2(int id, int start)
 {
 	TRACE(_T("id = %d, start...\n"), id);
 
-	for (int i = start + 50; i >= start; i--)
+	for (int i = start + 100; i >= start; i--)
 	{
 		m_list.set_text(id, 1, i2S(i - start));
-		TRACE(_T("id=%d, i = %d\n"), id, i);
+		logWrite(_T("id=02%d, i = %d"), id, i);
 		std::this_thread::sleep_for(std::chrono::milliseconds(10));
 	}
 
@@ -203,11 +232,44 @@ int CTestThreadPoolDlg::test_func2(int id, int start)
 	return id;
 }
 
+void CTestThreadPoolDlg::test_func3()
+{
+	while (true)
+	{
+
+		//TRACE(_T("test_func3()\n"));
+		//std::unique_lock<std::mutex> lock(m_mutex);
+		//m_cond.wait(lock, [this]() -> bool
+		//	{
+		//		return m_int_queue.size();
+		//	}
+		//);
+
+		//위와 같이 std::condition_variable로 wait를 걸고 조건이 true가 되면
+		//실제 body를 처리하는 것이 정석이다.
+		//아래와 같이 조건이 true이면 처리, false이면 sleep_for는 정석은 아니지만
+		//CPU 사용률에 영향이 거의 안느껴진다.
+		if (m_int_queue.size())
+		{
+			TRACE(_T("pop_back()\n"));
+			m_mutex.lock();
+			m_int_queue.pop_back();
+			TRACE(_T("queue size = %d\n"), m_int_queue.size());
+			m_mutex.unlock();
+		}
+		else
+		{
+			std::this_thread::sleep_for(std::chrono::milliseconds(1));
+		}
+	}
+}
+
 #include <functional>
 void CTestThreadPoolDlg::OnBnClickedOk()
 {
-	SetWindowText(_T("total thread = ") + i2S(m_request_id + 1));
+	//SetWindowText(_T("total thread = ") + i2S(m_request_id + 1));
 	/*
+	//HttpRequest를 통한 웹 파일 다운로드는 최대 2개까지만 동시에 진행되는 제약이 있다.
 	//CString file_path = _T("agent/linkmemine_windows_agent_setup.exe");	//37 MB
 	CString file_path = _T("lmmviewer/lmmviewer_old(solution).zip");	//210 MB
 	//CRequestUrlParams* params = (CRequestUrlParams*)new CRequestUrlParams(m_server_ip, m_server_port, _T(""), _T("GET"));
@@ -240,9 +302,14 @@ void CTestThreadPoolDlg::OnBnClickedOk()
 
 	*/
 
+	//m_pool.EnqueueJob([this]() { test_func3(); });
+#if 1
 	//만약 시간이 걸리는 작업일 경우는 id를 vector에 저장해놓고 동일한 크기의 vector에 thread종료 flag를 넣어
 	//해당 flag가 true이면 바로 thread함수에서 리턴하도록 해야 한다.
-	for (int id = 0; id < 100; id++)
+	int loop = 100;
+	long t0 = clock();
+	//100개의 thread를 넣는데 1526ms
+	for (int id = 0; id < m_pool.get_max_pool_size(); id++)
 	{
 		m_list.insert_item(id, i2S(id), false, false);
 
@@ -252,12 +319,15 @@ void CTestThreadPoolDlg::OnBnClickedOk()
 
 		//서로 다른 함수 타입도 모두 job으로 등록하여 thread로 실행할 수 있다.
 		if (id % 2)
-			m_pool.EnqueueJob([id, this]() { test_func1(id, id * 50, id * 50 + 50); });
+			m_pool.EnqueueJob([id, loop, this]() { test_func1(id, id * loop, id * loop + loop); });
 		else
-			m_pool.EnqueueJob([id, this]() { test_func2(id, id * 50); });
+			m_pool.EnqueueJob([id, loop, this]() { test_func2(id, id * loop); });
 		////Wait(10);	//wait를 안주면 에러발생. ThreadPool 클래스의 EnqueueJob()에서  Sleep(10);을 주니 정상 동작함.
 	}
 
+	SetWindowText(i2S(clock() - t0));
+	TRACE(_T("elapsed = %ld\n"), clock() - t0);
+#endif
 	/*
 	//std::vector<std::future<int>> futures;
 	//futures.emplace_back(
@@ -285,6 +355,14 @@ void CTestThreadPoolDlg::OnBnClickedOk()
 void CTestThreadPoolDlg::OnBnClickedCancel()
 {
 	// TODO: 여기에 컨트롤 알림 처리기 코드를 추가합니다.
+	int job_count = m_pool.get_job_count();
+	TRACE(_T("job_count = %d\n"), job_count);
+	if (job_count > 0)
+	{
+		m_pool.stop_all_threads();
+		return;
+	}
+
 	CDialogEx::OnCancel();
 }
 
@@ -299,4 +377,24 @@ void CTestThreadPoolDlg::init_list()
 	m_list.set_header_height(24);
 	m_list.set_line_height(20);
 	//m_list.set_color_theme(CVtListCtrlEx::color_theme_navy_blue);
+}
+
+
+void CTestThreadPoolDlg::OnWindowPosChanged(WINDOWPOS* lpwndpos)
+{
+	CDialogEx::OnWindowPosChanged(lpwndpos);
+
+	// TODO: 여기에 메시지 처리기 코드를 추가합니다.
+	SaveWindowPosition(&theApp, this);
+}
+
+
+void CTestThreadPoolDlg::OnBnClickedButtonAddQueue()
+{
+	m_mutex.lock();
+	m_int_queue.push_back(random19937(0, 100));
+	TRACE(_T("queue size = %d\n"), m_int_queue.size());
+	m_mutex.unlock();
+
+	m_cond.notify_one();
 }
